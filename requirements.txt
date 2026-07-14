@@ -1,0 +1,7 @@
+fsrs>=5.0
+fastapi>=0.110
+uvicorn>=0.27
+groq>=0.11
+tavily-python>=0.5
+pypdf>=5.0
+python-multipart>=0.0.9
