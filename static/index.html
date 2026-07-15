@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tutor // agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#faf7f0; --surface:#ffffff; --surface-soft:#f4f0e6;
+    --line:#e9e3d2; --line-strong:#dcd4bc;
+    --text:#241f16; --text-muted:#8a8270; --text-dim:#b3ab97;
+    --olive:#79885c; --olive-soft:#eaeee0; --olive-dim:#5e6b47;
+    --coral:#c96a45; --coral-soft:#f7e6dd;
+    --blue:#3a6ea8; --blue-soft:#e7eef7;
+    --red:#b8543f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .serif-italic{font-family:'Newsreader',serif; font-style:italic;}
+
+  #auth-screen{
+    position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:100;
+  }
+  .auth-card{width:360px; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:32px; box-shadow:0 4px 24px rgba(30,20,10,0.08);}
+  .auth-tabs{display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--line);}
+  .auth-tab{flex:1; text-align:center; padding:9px 0; font-size:13px; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent;}
+  .auth-tab.active{color:var(--olive-dim); font-weight:600; border-bottom-color:var(--olive);}
+  #auth-form-login input, #auth-form-signup input{margin-bottom:12px;}
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    padding:14px 28px; background:var(--surface); border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-icon{
+    width:34px; height:34px; border-radius:50%; background:var(--olive); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-family:'Newsreader',serif;
+    font-style:italic; font-weight:600; font-size:17px; flex-shrink:0;
+  }
+  .brand-name{font-family:'Newsreader',serif; font-style:italic; font-weight:600; font-size:18px; line-height:1.1;}
+  .brand-tag{font-size:9px; color:var(--text-dim); letter-spacing:0.09em; text-transform:uppercase; margin-top:2px;}
+
+  .toptabs{display:flex; gap:22px;}
+  .toptab{font-size:14px; color:var(--text-muted); cursor:pointer; padding:4px 2px; border-bottom:2px solid transparent; user-select:none; white-space:nowrap;}
+  .toptab:hover{color:var(--text);}
+  .toptab.active{color:var(--olive-dim); font-weight:600; border-bottom-color:var(--olive);}
+
+  .topright{display:flex; align-items:center; gap:16px; flex-shrink:0;}
+  .retention{font-size:11px; color:var(--text-muted); text-align:right; line-height:1.3;}
+  .retention b{display:block; font-size:14px; color:var(--olive-dim); font-family:'JetBrains Mono',monospace;}
+  .icon-btn{
+    width:32px; height:32px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; color:var(--text-muted);
+  }
+  .icon-btn:hover{background:var(--surface-soft);}
+
+  .domain-row{display:flex; gap:8px; padding:12px 28px; background:var(--surface); border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .domain-pill{
+    padding:6px 14px; border-radius:20px; font-size:12px; font-family:'JetBrains Mono',monospace;
+    background:var(--surface-soft); color:var(--text-muted); cursor:pointer; border:1px solid transparent;
+  }
+  .domain-pill:hover{border-color:var(--line-strong);}
+  .domain-pill.active{background:var(--olive-soft); color:var(--olive-dim); font-weight:600;}
+  .domain-pill.add{color:var(--coral); font-style:italic; background:none;}
+
+  .layout{display:flex; align-items:flex-start;}
+  .rail{
+    width:280px; flex-shrink:0; padding:22px 18px; border-right:1px solid var(--line);
+    min-height:calc(100vh - 110px); background:var(--surface);
+  }
+  .rail-header{margin-bottom:22px;}
+  .level-pill{
+    display:inline-block; background:var(--olive-soft); color:var(--olive-dim); font-size:10px;
+    font-family:'JetBrains Mono',monospace; font-weight:600; padding:4px 10px; border-radius:20px;
+    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;
+  }
+  .subject-select{
+    width:100%; background:var(--surface-soft); border:1px solid var(--line-strong); color:var(--text-muted);
+    font-family:'Inter',sans-serif; font-size:12.5px; padding:7px 10px; border-radius:8px; margin-bottom:14px;
+    cursor:pointer;
+  }
+  .domain-heading{font-family:'Newsreader',serif; font-size:24px; font-weight:600; margin-bottom:4px;}
+  .hobby-subline{font-size:12px; color:var(--text-muted); line-height:1.4;}
+  .hobby-subline b{color:var(--coral); font-weight:600;}
+  .add-domain-link{font-size:12px; color:var(--coral); font-style:italic; cursor:pointer; display:inline-block; margin-top:2px;}
+  .mindgraph-box{background:var(--surface-soft); border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:22px;}
+  .mindgraph-caption{font-size:9px; color:var(--text-dim); text-align:center; text-transform:uppercase; letter-spacing:0.08em; margin-top:4px;}
+
+  .rail-eyebrow{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:10px; font-family:'JetBrains Mono',monospace;}
+  .module-group{margin-bottom:16px;}
+  .module-title{font-size:12px; font-weight:600; color:var(--text); margin-bottom:6px; display:flex; gap:6px; align-items:baseline;}
+  .module-num{color:var(--text-dim); font-family:'JetBrains Mono',monospace; font-size:10px;}
+  .roadmap-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 10px; border-radius:8px; margin-bottom:3px; cursor:pointer; font-size:13px;
+  }
+  .roadmap-item:hover{background:var(--surface-soft);}
+  .roadmap-item.selected{background:var(--olive-soft); font-weight:600;}
+  .roadmap-item .rname{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .roadmap-badges{display:flex; align-items:center; gap:6px; flex-shrink:0;}
+  .sm-badge{font-size:9px; font-family:'JetBrains Mono',monospace; color:var(--text-dim); background:var(--surface-soft); padding:1px 5px; border-radius:4px;}
+  .status-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0;}
+  .status-dot.mastered{background:var(--olive);}
+  .status-dot.progress{background:var(--coral);}
+  .status-dot.new{background:var(--text-dim);}
+
+  main.main-pane{flex:1; padding:28px 36px 100px; min-width:0;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .main-inner{max-width:760px;}
+
+  .eyebrow-pill{display:inline-block; background:var(--olive-soft); color:var(--olive-dim); font-size:10px; font-family:'JetBrains Mono',monospace; padding:4px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;}
+  .page-title{font-family:'Newsreader',serif; font-size:30px; font-weight:500; margin:0 0 8px;}
+  .page-sub{font-size:14px; color:var(--text-muted); margin-bottom:24px;}
+
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:24px; margin-bottom:18px; box-shadow:0 1px 2px rgba(30,20,10,0.03);}
+  .eyebrow{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:12px; font-family:'JetBrains Mono',monospace;}
+  .idle{padding:18px 0; text-align:center; color:var(--text-muted); font-size:14px;}
+  .error-banner{background:#fbeae4; border:1px solid var(--red); color:var(--red); padding:12px 14px; border-radius:9px; font-size:13px; margin-bottom:16px;}
+
+  input[type=text],input[type=number]{
+    width:100%; background:var(--surface-soft); border:1px solid var(--line-strong); color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-size:13px; padding:11px; border-radius:8px; margin-bottom:10px;
+  }
+  input:focus{outline:none; border-color:var(--olive);}
+  textarea{
+    width:100%; background:var(--surface-soft); border:1px solid var(--line-strong); color:var(--text);
+    font-family:'Inter',sans-serif; font-size:14px; padding:12px; border-radius:8px; margin-bottom:10px; resize:vertical; min-height:60px;
+  }
+  textarea:focus{outline:none; border-color:var(--olive);}
+
+  button{
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500;
+    padding:9px 15px; border-radius:20px; border:1px solid var(--line-strong);
+    background:var(--surface-soft); color:var(--text); cursor:pointer;
+  }
+  button.primary{background:var(--olive); border-color:var(--olive); color:#fff;}
+  button.primary:hover{background:var(--olive-dim);}
+  button:hover{filter:brightness(0.97);}
+  button:disabled{opacity:0.5; cursor:default;}
+  .row{display:flex; gap:8px; flex-wrap:wrap;}
+  .feedback{font-size:13px; margin-top:10px; color:var(--text-muted);}
+  .feedback.correct{color:var(--olive-dim);}
+  .feedback.incorrect{color:var(--coral);}
+
+  .mc-option{
+    display:block; width:100%; text-align:left; background:var(--surface); border:1px solid var(--line-strong);
+    border-radius:9px; padding:12px 14px; margin-bottom:8px; font-family:'Inter',sans-serif; font-size:14px; cursor:pointer;
+  }
+  .mc-option:hover{background:var(--surface-soft);}
+  .mc-option.chosen-correct{background:var(--olive-soft); border-color:var(--olive);}
+  .mc-option.chosen-incorrect{background:var(--coral-soft); border-color:var(--coral);}
+
+  .card-content{font-size:17px; line-height:1.55; margin-bottom:18px;}
+  .remediate{border-color:var(--coral); background:linear-gradient(180deg, var(--coral-soft) 0%, var(--surface) 90px);}
+  .remediate .eyebrow{color:var(--coral);}
+
+  .subtle-toggle{font-size:12px; color:var(--blue); cursor:pointer;}
+  .manual-form{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:none;}
+  .manual-form.open{display:block;}
+  .gen-status{font-size:13px; margin-top:10px; padding:11px; border-radius:8px; display:none;}
+  .gen-status.loading{display:block; background:var(--surface-soft); color:var(--text-muted);}
+  .gen-status.success{display:block; background:var(--olive-soft); color:var(--olive-dim);}
+  .gen-status.error{display:block; background:var(--coral-soft); color:var(--coral);}
+
+  .chat-panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:6px;}
+  .chat-panel-main{padding:24px; box-shadow:0 2px 10px rgba(30,20,10,0.05); border-color:var(--olive);}
+  .chat-panel-main .chat-log{max-height:520px; min-height:220px;}
+  .chat-head{display:flex; align-items:center; gap:8px; margin-bottom:14px;}
+  .chat-head .dot{width:7px; height:7px; border-radius:50%; background:var(--olive);}
+  .chat-log{max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:14px; padding-right:4px;}
+  .chat-msg{padding:10px 13px; border-radius:12px; font-size:13.5px; line-height:1.5; max-width:88%;}
+  .chat-msg.user{background:var(--olive-soft); align-self:flex-end; color:var(--olive-dim);}
+  .chat-msg.model{background:var(--surface-soft); align-self:flex-start;}
+  .chat-input-row{display:flex; gap:8px;}
+  .chat-input-row input{margin-bottom:0;}
+
+  .ledger-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:640px){.ledger-grid{grid-template-columns:1fr;}}
+  .ledger-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px;}
+  .ledger-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+  .ledger-module{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; font-family:'JetBrains Mono',monospace;}
+  .ledger-name{font-size:15px; font-weight:600; margin-top:2px;}
+  .due-pill{font-size:10px; background:var(--coral-soft); color:var(--coral); padding:3px 9px; border-radius:20px; font-family:'JetBrains Mono',monospace; white-space:nowrap;}
+  .ledger-stats{display:flex; gap:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:10px 0; margin:10px 0;}
+  .ledger-stat{flex:1; text-align:center;}
+  .ledger-stat b{display:block; font-family:'JetBrains Mono',monospace; font-size:15px;}
+  .ledger-stat span{font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;}
+  .ledger-bottom{display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);}
+
+  .concept-detail-cards{display:flex; flex-direction:column; gap:10px;}
+  .qa-card{background:var(--surface-soft); border-radius:9px; padding:12px 14px; font-size:13.5px;}
+  .qa-card .q{font-weight:500; margin-bottom:4px;}
+  .qa-card .a{color:var(--olive-dim);}
+  .chip{display:inline-block; background:var(--surface-soft); border:1px solid var(--line); padding:2px 8px; border-radius:5px; font-size:11px; color:var(--text-muted); margin-right:4px; font-family:'JetBrains Mono',monospace;}
+  /* auth gating -- placed last so it wins the cascade over any earlier
+     .topbar/.layout display rules regardless of source order */
+  .topbar, .layout{display:none;}
+  body.authed .topbar{display:flex;}
+  body.authed .layout{display:flex;}
+  body.authed #auth-screen{display:none;}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="brand" style="justify-content:center; margin-bottom:24px;">
+      <div class="brand-icon">t</div>
+      <div><div class="brand-name">tutor // agent</div><div class="brand-tag">empowered study companion</div></div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Log in</div>
+      <div class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign up</div>
+    </div>
+    <div id="auth-form-login">
+      <input type="text" id="login-email" placeholder="email" autocomplete="username">
+      <input type="password" id="login-password" placeholder="password" autocomplete="current-password">
+      <div class="row"><button class="primary" style="width:100%; justify-content:center;" onclick="doLogin()">log in</button></div>
+    </div>
+    <div id="auth-form-signup" style="display:none;">
+      <input type="text" id="signup-email" placeholder="email" autocomplete="username">
+      <input type="password" id="signup-password" placeholder="password (min. 8 characters)" autocomplete="new-password">
+      <div class="row"><button class="primary" style="width:100%; justify-content:center;" onclick="doSignup()">create account</button></div>
+    </div>
+    <div class="feedback" id="auth-error"></div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">t</div>
+    <div><div class="brand-name">tutor // agent</div><div class="brand-tag">empowered study companion</div></div>
+  </div>
+  <nav class="toptabs" id="toptabs">
+    <div class="toptab active" data-view="curriculum">Curriculum Space</div>
+    <div class="toptab" data-view="practice">Practice Shell</div>
+    <div class="toptab" data-view="docexplainer">Doc Explainer</div>
+    <div class="toptab" data-view="review">Review Schedule</div>
+  </nav>
+  <div class="topright">
+    <div class="retention"><b id="retention-val">0%</b>retention</div>
+    <button class="icon-btn" onclick="refreshCurrentView()" title="refresh">&#8635;</button>
+    <button class="icon-btn" onclick="doLogout()" title="log out" style="width:auto; padding:0 10px; font-size:11px; font-family:'JetBrains Mono',monospace;">log out</button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="rail">
+    <div class="rail-header" id="rail-header">
+      <div class="idle" style="font-size:12px; padding:0;">no subjects yet</div>
+    </div>
+
+    <div class="mindgraph-box">
+      <svg id="mindgraph" viewBox="0 0 240 160" width="100%" height="140"></svg>
+      <div class="mindgraph-caption">concept relationships</div>
+    </div>
+    <div class="rail-eyebrow">curated roadmap</div>
+    <div id="roadmap"></div>
+  </aside>
+
+  <main class="main-pane"><div class="main-inner">
+
+    <div class="view active" id="view-curriculum">
+      <div id="curriculum-error"></div>
+      <div id="concept-detail"></div>
+      <div id="home-screen"></div>
+    </div>
+
+    <div class="view" id="view-docexplainer">
+      <span class="eyebrow-pill">doc insight lab</span>
+      <h1 class="page-title serif-italic">Doc Explainer</h1>
+      <div class="page-sub">Upload your own notes, a PDF, or a photo. It gets explained through your hobby's analogy lens, same as generated content.</div>
+      <div id="doc-error"></div>
+
+      <div class="panel">
+        <div class="eyebrow">upload reference material</div>
+        <input type="file" id="doc-file-input" accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,.gif" style="display:none;" onchange="handleFileSelect()">
+        <div id="dropzone" style="border:2px dashed var(--line-strong); border-radius:10px; padding:28px; text-align:center; cursor:pointer;" onclick="document.getElementById('doc-file-input').click()">
+          <div style="font-size:14px; font-weight:500; margin-bottom:4px;">Drag & drop or click to browse</div>
+          <div style="font-size:11px; color:var(--text-dim);">PDF, TXT, MD, or an image (PNG/JPG) — max 15MB</div>
+        </div>
+        <div class="feedback" id="upload-status"></div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">uploaded documents</div>
+        <div id="doc-list"><div class="idle">no documents uploaded yet.</div></div>
+      </div>
+
+      <div id="doc-explanation-panel"></div>
+    </div>
+
+    <div class="view" id="view-practice">
+      <span class="eyebrow-pill">practice shell</span>
+      <h1 class="page-title serif-italic">Ask Your AI Tutor</h1>
+      <div class="page-sub">A full tutor for whatever concept is in focus — ask it to explain something differently, go deeper, work through an example, or quiz you on the spot.</div>
+      <div id="practice-error"></div>
+
+      <div class="panel" id="card-panel" style="margin-bottom:14px;"><div class="idle">loading…</div></div>
+      <div class="page-sub" id="practice-sub" style="margin-bottom:10px; font-size:12px;"></div>
+
+      <div class="chat-panel chat-panel-main" id="chat-panel" style="display:none;">
+        <div class="chat-head"><span class="dot"></span><b id="chat-concept-name" style="font-size:14px;"></b><span style="font-size:11px; color:var(--text-dim); margin-left:auto;">connected to groq</span></div>
+        <div class="chat-log" id="chat-log"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="ask anything — explain differently, go deeper, quiz me, work an example...">
+          <button class="primary" onclick="sendChat()">send</button>
+        </div>
+        <div class="feedback" id="chat-error"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-review">
+      <span class="eyebrow-pill">fsrs-based schedule</span>
+      <h1 class="page-title serif-italic">Review Schedule</h1>
+      <div class="page-sub">Track review intervals per concept. This is FSRS under the hood (not literal SM-2) — stability plays the role of an interval, difficulty plays a similar role to an ease factor, but the scales aren't the same. Concepts due now are flagged.</div>
+      <div id="review-error"></div>
+      <div class="ledger-grid" id="ledger-grid"></div>
+    </div>
+
+  </div></main>
+</div>
+
+<script>
+let currentDomain = null;
+let viewMode = 'home'; // 'home' | 'subject'
+let quizState = null;
+let domainsCache = [];
+let curriculumCache = [];
+let selectedConceptId = null;
+let currentCard = null;
+let chatHistory = [];
+let chatConceptId = null;
+let chatConceptName = null;
+
+async function safeFetch(url, opts, errorTargetId, retriesLeft){
+  opts = opts || {};
+  const isGet = !opts.method || opts.method === 'GET';
+  if (retriesLeft === undefined) retriesLeft = isGet ? 2 : 0;
+
+  let res;
+  try {
+    res = await fetch(url, opts);
+  } catch (networkError){
+    // fetch() itself throwing (not a 4xx/5xx response) is the signature of an
+    // unreachable server -- on a host like Render's free tier, that's almost
+    // always the instance waking up from a cold start (can take 50s+), not a
+    // real failure. Worth an automatic retry before giving up.
+    if (retriesLeft > 0){
+      if (errorTargetId){
+        document.getElementById(errorTargetId).innerHTML =
+          `<div class="error-banner">waking up the server — free hosting tiers sleep when idle and can take up to a minute to respond. Retrying…</div>`;
+      }
+      await new Promise(r => setTimeout(r, 6000));
+      return safeFetch(url, opts, errorTargetId, retriesLeft - 1);
+    }
+    if (errorTargetId){
+      document.getElementById(errorTargetId).innerHTML =
+        `<div class="error-banner">couldn't reach the server after retrying. If this is hosted on a free tier, try refreshing the page in a moment -- it may still be starting up.</div>`;
+    }
+    throw networkError;
+  }
+
+  if (!res.ok){
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.detail || `request failed (${res.status})`);
+    if (errorTargetId){
+      document.getElementById(errorTargetId).innerHTML = `<div class="error-banner">couldn't load this: ${err.message}</div>`;
+    }
+    throw err;
+  }
+  return await res.json();
+}
+
+document.getElementById('toptabs').addEventListener('click', e => {
+  const item = e.target.closest('.toptab');
+  if (!item) return;
+  document.querySelectorAll('.toptab').forEach(n => n.classList.remove('active'));
+  item.classList.add('active');
+  const view = item.dataset.view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  if (view === 'practice') loadPractice();
+  if (view === 'review') loadLedger();
+  if (view === 'docexplainer') loadDocuments();
+});
+
+// ---------- Doc Explainer ----------
+
+const dropzone = document.getElementById('dropzone');
+['dragover','dragleave','drop'].forEach(evt => {
+  dropzone.addEventListener(evt, e => e.preventDefault());
+});
+dropzone.addEventListener('dragover', () => dropzone.style.borderColor = 'var(--olive)');
+dropzone.addEventListener('dragleave', () => dropzone.style.borderColor = 'var(--line-strong)');
+dropzone.addEventListener('drop', e => {
+  dropzone.style.borderColor = 'var(--line-strong)';
+  if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+});
+
+function handleFileSelect(){
+  const input = document.getElementById('doc-file-input');
+  if (input.files.length) uploadFile(input.files[0]);
+}
+
+async function uploadFile(file){
+  if (!currentDomain){ document.getElementById('doc-error').innerHTML = `<div class="error-banner">create a domain first.</div>`; return; }
+  const status = document.getElementById('upload-status');
+  status.textContent = 'uploading…';
+  status.className = 'feedback';
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await fetch(`/api/documents/${currentDomain}`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'upload failed');
+    status.textContent = `uploaded ${data.filename}.`;
+    status.className = 'feedback correct';
+    loadDocuments();
+  } catch(e){
+    status.textContent = e.message;
+    status.className = 'feedback incorrect';
+  }
+}
+
+async function loadDocuments(){
+  if (!currentDomain) return;
+  let docs;
+  try { docs = await safeFetch(`/api/documents/${currentDomain}`, {}, 'doc-error'); }
+  catch(e){ return; }
+  document.getElementById('doc-error').innerHTML = '';
+  const list = document.getElementById('doc-list');
+  if (!docs.length){ list.innerHTML = `<div class="idle">no documents uploaded yet.</div>`; return; }
+  list.innerHTML = docs.map(d => `
+    <div class="roadmap-item" style="padding:10px 12px;" onclick="showDocExplanation('${d.id}', ${JSON.stringify(d.explanation ? true : false)})">
+      <span class="rname">${d.filename}</span>
+      <span class="roadmap-badges">
+        <span class="sm-badge">${d.file_type}</span>
+        ${d.explanation ? '<span class="status-dot mastered"></span>' : '<span class="status-dot new"></span>'}
+      </span>
+    </div>
+  `).join('');
+}
+
+async function showDocExplanation(docId, hasExplanation){
+  const panel = document.getElementById('doc-explanation-panel');
+  if (hasExplanation){
+    const docs = await safeFetch(`/api/documents/${currentDomain}`, {}, null);
+    const doc = docs.find(d => d.id === docId);
+    panel.innerHTML = `
+      <div class="panel">
+        <div class="eyebrow">explanation — ${doc.filename}</div>
+        <div style="font-size:14px; line-height:1.65; white-space:pre-wrap;">${doc.explanation}</div>
+      </div>`;
+  } else {
+    panel.innerHTML = `
+      <div class="panel">
+        <div class="idle" style="padding:6px 0 14px;">Not explained yet.</div>
+        <div class="row"><button class="primary" id="doc-explain-btn" onclick="triggerExplain('${docId}')">explain this document</button></div>
+        <div class="feedback" id="doc-explain-status"></div>
+      </div>`;
+  }
+}
+
+async function triggerExplain(docId){
+  const btn = document.getElementById('doc-explain-btn');
+  const status = document.getElementById('doc-explain-status');
+  btn.disabled = true;
+  status.textContent = 'reading and explaining — can take 15-30s…';
+  status.className = 'feedback';
+  try {
+    const data = await safeFetch(`/api/documents/${docId}/explain`, { method: 'POST' }, null);
+    showDocExplanation(docId, true);
+    loadDocuments();
+  } catch(e){
+    status.textContent = e.message;
+    status.className = 'feedback incorrect';
+    btn.disabled = false;
+  }
+}
+
+function refreshCurrentView(){
+  loadDomains();
+  const active = document.querySelector('.toptab.active').dataset.view;
+  if (active === 'curriculum') loadCurriculum();
+  if (active === 'practice') loadPractice();
+  if (active === 'review') loadLedger();
+}
+
+async function loadDomains(){
+  let domains;
+  try { domains = await safeFetch('/api/domains', {}, 'rail-header'); }
+  catch(e){
+    return;
+  }
+  domainsCache = domains;
+
+  if (domains.length === 0){ viewMode = 'home'; currentDomain = null; showEmptyState(); return; }
+  if (!currentDomain){ currentDomain = domains[0].id; viewMode = 'subject'; }
+
+  await renderRailHeader(domains);
+  if (viewMode === 'home'){
+    renderHomeScreen();
+    document.getElementById('roadmap').innerHTML = '';
+    drawMindGraph([], null);
+  } else {
+    loadCurriculum();
+  }
+}
+
+async function renderRailHeader(domains){
+  const current = domains.find(d => d.id === currentDomain) || domains[0];
+  let meta = { hobby: null, course_level: null };
+  if (currentDomain){ try { meta = await safeFetch(`/api/domain-meta/${currentDomain}`, {}, null); } catch(e){} }
+
+  const header = document.getElementById('rail-header');
+  header.innerHTML = `
+    ${meta.course_level ? `<div class="level-pill">${meta.course_level} track</div>` : ''}
+    <select class="subject-select" id="subject-select" onchange="handleSubjectChange(this.value)">
+      ${domains.map(d => `<option value="${d.id}" ${d.id===currentDomain && viewMode==='subject'?'selected':''}>${d.name}</option>`).join('')}
+      <option value="__new__" ${viewMode==='home'?'selected':''}>+ new subject…</option>
+    </select>
+    ${viewMode === 'subject' ? `
+      <div class="domain-heading">${current.name}</div>
+      ${meta.hobby ? `<div class="hobby-subline">Analogies generated from: <b>${meta.hobby}</b></div>` : ''}
+    ` : `<div class="domain-heading" style="font-size:18px; color:var(--text-muted);">New subject</div>`}
+  `;
+}
+
+function handleSubjectChange(value){
+  if (value === '__new__'){
+    viewMode = 'home';
+    loadDomains();
+  } else {
+    selectDomain(value);
+  }
+}
+
+async function promptNewDomainManually(){
+  const name = document.getElementById('new-subject-name').value.trim();
+  if (!name) return;
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  await safeFetch('/api/domains', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, name}) }, 'curriculum-error');
+  currentDomain = id;
+  viewMode = 'subject';
+  await loadDomains();
+}
+
+function selectDomain(id){
+  currentDomain = id;
+  viewMode = 'subject';
+  selectedConceptId = null;
+  loadDomains();
+}
+
+function showEmptyState(){
+  document.getElementById('rail-header').innerHTML = `
+    <div class="idle" style="font-size:12px; padding:0 0 10px; text-align:left;">no subjects yet</div>
+  `;
+  document.getElementById('roadmap').innerHTML = '';
+  document.getElementById('concept-detail').innerHTML = '';
+  renderHomeScreen();
+  drawMindGraph([], null);
+}
+
+function renderHomeScreen(){
+  document.getElementById('concept-detail').innerHTML = '';
+  document.getElementById('home-screen').innerHTML = `
+    <span class="eyebrow-pill">start a new subject</span>
+    <h1 class="page-title serif-italic">What do you want to learn?</h1>
+    <div class="page-sub">Generate a full syllabus with AI, or start with an empty subject and add content yourself.</div>
+
+    <div class="panel">
+      <div class="eyebrow">generate a syllabus with ai</div>
+      <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+        Describe what you want to learn, and optionally a hobby to personalize analogies with. Tavily researches it via live web search, Groq writes it up — both free tier, require TAVILY_API_KEY and GROQ_API_KEY on the server.
+      </div>
+      <textarea id="goal-input" placeholder="What do you want to learn? e.g. Basics of Quantum Physics"></textarea>
+      <input type="text" id="hobby-input" placeholder="Your hobby, for analogies (optional) — e.g. baking">
+      <div class="row"><button class="primary" id="gen-btn" onclick="generateSyllabus()">generate syllabus</button></div>
+      <div class="gen-status" id="gen-status"></div>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">or create one manually</div>
+      <input type="text" id="new-subject-name" placeholder="subject name — e.g. Rust, Spanish">
+      <div class="row"><button class="primary" onclick="promptNewDomainManually()">create empty subject</button></div>
+    </div>
+  `;
+}
+
+async function generateSyllabus(){
+  const goal = document.getElementById('goal-input').value.trim();
+  const hobby = document.getElementById('hobby-input').value.trim();
+  if (!goal) return;
+  const btn = document.getElementById('gen-btn');
+  const status = document.getElementById('gen-status');
+  btn.disabled = true;
+  status.className = 'gen-status loading';
+  status.textContent = 'researching with Tavily and writing it up with Groq — can take 20-40s…';
+  try {
+    const data = await safeFetch('/api/generate-syllabus', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({goal_description: goal, hobby}) }, null);
+    status.className = 'gen-status success';
+    status.textContent = `created "${data.domain_name}" with ${data.concept_count} concepts.`;
+    currentDomain = data.domain_id;
+    viewMode = 'subject';
+    selectedConceptId = null;
+    setTimeout(loadDomains, 700); // brief pause so the success message is visible before switching
+  } catch (e){
+    status.className = 'gen-status error';
+    status.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadPractice(){
+  if (!currentDomain){ document.getElementById('card-panel').innerHTML = `<div class="idle">create a subject first.</div>`; return; }
+  let action;
+  try { action = await safeFetch(`/api/next/${currentDomain}`, {}, 'practice-error'); }
+  catch(e){ return; }
+  document.getElementById('practice-error').innerHTML = '';
+  const panel = document.getElementById('card-panel');
+  const sub = document.getElementById('practice-sub');
+
+  if (action.action === 'idle'){
+    panel.className = 'panel';
+    panel.innerHTML = `<div class="idle">nothing due right now. add more cards, or ask the tutor below about anything you've selected in the roadmap.</div>`;
+    sub.textContent = 'all caught up.';
+    openChatFor(selectedConceptId);
+    return;
+  }
+  if (action.action === 'remediate'){
+    panel.className = 'panel remediate';
+    panel.innerHTML = `
+      <div class="eyebrow">struggling — flagged by trend, not a single miss</div>
+      <div class="card-content"><b>${action.concept_id}</b> — mastery ${(action.mastery*100).toFixed(0)}%</div>
+      <div class="feedback">${action.reason}. Ask the tutor below for a different explanation.</div>`;
+    sub.textContent = 'a concept needs attention.';
+    openChatFor(action.concept_id);
+    return;
+  }
+
+  currentCard = action.card;
+  panel.className = 'panel';
+  sub.textContent = 'next card is ready.';
+  if (currentCard.grading_type === 'multiple_choice' && currentCard.options){
+    panel.innerHTML = `
+      <div class="eyebrow">due now — multiple choice</div>
+      <div class="card-content">${currentCard.content}</div>
+      <div id="mc-options">${currentCard.options.map(opt => `<button class="mc-option" onclick="submitMC('${opt.replace(/'/g,"\\'")}')">${opt}</button>`).join('')}</div>
+      <div class="feedback" id="feedback"></div>`;
+  } else {
+    panel.innerHTML = `
+      <div class="eyebrow">due now</div>
+      <div class="card-content">${currentCard.content}</div>
+      <input type="text" id="answer-input" placeholder="your answer" autocomplete="off">
+      <div class="row"><button class="primary" onclick="submitAnswer()">submit</button></div>
+      <div class="feedback" id="feedback"></div>`;
+    document.getElementById('answer-input')?.addEventListener('keydown', e => { if (e.key==='Enter') submitAnswer(); });
+    document.getElementById('answer-input')?.focus();
+  }
+  openChatFor(selectedConceptId);
+}
+
+async function loadCurriculum(){
+  if (!currentDomain) return;
+  let concepts;
+  try { concepts = await safeFetch(`/api/curriculum/${currentDomain}`, {}, 'curriculum-error'); }
+  catch(e){ return; }
+  document.getElementById('curriculum-error').innerHTML = '';
+  curriculumCache = concepts;
+
+  renderRoadmap(concepts);
+
+  if (!selectedConceptId && concepts.length) selectedConceptId = concepts[0].id;
+  renderConceptDetail();
+  drawMindGraph(concepts, selectedConceptId);
+  updateRetention(concepts);
+}
+
+function updateRetention(concepts){
+  if (!concepts.length){ document.getElementById('retention-val').textContent = '0%'; return; }
+  const avg = concepts.reduce((s,c) => s + c.p_mastery, 0) / concepts.length;
+  document.getElementById('retention-val').textContent = Math.round(avg*100) + '%';
+}
+
+function renderRoadmap(concepts){
+  const container = document.getElementById('roadmap');
+  if (!concepts.length){
+    container.innerHTML = `<div class="idle" style="font-size:12px; padding:10px 0;">no concepts yet — generate a syllabus or add one manually below.</div>`;
+    return;
+  }
+  const groups = {};
+  const order = [];
+  concepts.forEach(c => {
+    const key = c.module_name || 'Unsorted';
+    if (!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(c);
+  });
+  let html = '';
+  let modNum = 1;
+  order.forEach(modName => {
+    const items = groups[modName];
+    const label = modName === 'Unsorted' ? 'Unsorted' : `<span class="module-num">M${String(modNum).padStart(2,'0')}</span> ${modName}`;
+    if (modName !== 'Unsorted') modNum++;
+    html += `<div class="module-group"><div class="module-title">${label}</div>`;
+    items.forEach(c => {
+      const statusClass = c.review_count === 0 ? 'new' : (c.p_mastery >= 0.6 ? 'mastered' : 'progress');
+      html += `
+        <div class="roadmap-item${c.id===selectedConceptId?' selected':''}" onclick="selectConcept('${c.id}')">
+          <span class="rname">${c.name}</span>
+          <span class="roadmap-badges"><span class="sm-badge">SM:${c.review_count}</span><span class="status-dot ${statusClass}"></span></span>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectConcept(id){
+  selectedConceptId = id;
+  renderRoadmap(curriculumCache);
+  renderConceptDetail();
+  drawMindGraph(curriculumCache, selectedConceptId);
+}
+
+async function renderConceptDetail(){
+  const el = document.getElementById('concept-detail');
+  document.getElementById('home-screen').innerHTML = '';
+  if (!selectedConceptId){
+    el.innerHTML = `
+      <div class="panel"><div class="idle">No concepts yet in this subject. Add one below to get started.</div></div>
+      ${renderManageContentHTML()}
+    `;
+    return;
+  }
+  const c = curriculumCache.find(x => x.id === selectedConceptId);
+  if (!c) return;
+  let cards = [];
+  try { cards = await safeFetch(`/api/concept-cards/${selectedConceptId}`, {}, null); } catch(e){}
+
+  el.innerHTML = `
+    <span class="eyebrow-pill">${c.module_name || 'concept'}</span>
+    <h1 class="page-title serif-italic">${c.name}</h1>
+    <div class="page-sub">
+      ${c.prerequisites.length ? c.prerequisites.map(p => `<span class="chip">requires: ${p}</span>`).join('') : '<span class="chip">foundational</span>'}
+      <span class="chip">mastery ${(c.p_mastery*100).toFixed(0)}%</span>
+      ${c.module_name ? `<span class="chip" style="cursor:pointer; color:var(--olive-dim);" onclick="startModuleQuiz('${c.module_name.replace(/'/g,"\\'")}')">📝 quiz this module</span>` : ''}
+    </div>
+
+    ${c.synopsis ? `
+      <div class="panel">
+        <div class="eyebrow">core concept synopsis</div>
+        <div style="font-size:15px; margin-bottom:16px;">${c.synopsis}</div>
+        ${c.technical_breakdown ? `<div class="eyebrow">technical breakdown</div><div style="font-size:14px; line-height:1.6; color:var(--text-muted); margin-bottom:16px;">${c.technical_breakdown}</div>` : ''}
+        ${c.worked_example ? `<div class="eyebrow">worked example</div><div style="font-size:14px; line-height:1.6; background:var(--surface-soft); border-radius:9px; padding:14px;">${c.worked_example}</div>` : ''}
+      </div>
+      ${c.hobby_analogy ? `
+        <div class="panel" style="background:var(--coral-soft); border-color:var(--coral);">
+          <div class="eyebrow" style="color:var(--coral);">how this maps to your interest</div>
+          <div style="font-size:14px; font-style:italic; line-height:1.55;">"${c.hobby_analogy}"</div>
+        </div>` : ''}
+    ` : `
+      <div class="panel">
+        <div class="idle" style="padding:10px 0 16px;">No explanation generated for this concept yet.</div>
+        <div class="row"><button class="primary" onclick="generateExplanation('${c.id}')" id="explain-btn-${c.id}">generate explanation</button></div>
+        <div class="feedback" id="explain-status-${c.id}"></div>
+      </div>
+    `}
+
+    <div class="panel">
+      <div class="eyebrow">cards for this concept</div>
+      <div class="concept-detail-cards">
+        ${cards.length ? cards.map(card => `
+          <div class="qa-card">
+            <div class="q">${card.content}</div>
+            <div class="a">→ ${card.answer_key}${card.options ? ' · options: ' + card.options.join(', ') : ''}</div>
+          </div>`).join('') : '<div class="idle">no cards yet for this concept.</div>'}
+      </div>
+    </div>
+
+    <div id="module-quiz-panel"></div>
+
+    ${renderManageContentHTML()}
+  `;
+}
+
+function renderManageContentHTML(){
+  return `
+    <div class="panel">
+      <span class="subtle-toggle" onclick="toggleManageContent()">+ manage content for this subject</span>
+      <div class="manual-form" id="manage-content-forms">
+        <div style="margin-top:14px;">
+          <span class="subtle-toggle" onclick="toggleManual('concept')">+ add a concept</span>
+          <span class="subtle-toggle" style="margin-left:16px" onclick="toggleManual('card')">+ add a card</span>
+        </div>
+        <div class="manual-form" id="form-concept">
+          <input type="text" id="concept-id" placeholder="id (e.g. past_tense)">
+          <input type="text" id="concept-name" placeholder="display name">
+          <input type="text" id="concept-module" placeholder="module (optional, e.g. Grammar Basics)">
+          <div class="row"><button class="primary" onclick="submitConcept()">add concept</button></div>
+        </div>
+        <div class="manual-form" id="form-card">
+          <select id="card-concept" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface-soft); font-family:'JetBrains Mono',monospace; font-size:13px; margin-bottom:10px;">
+            ${curriculumCache.map(cc => `<option value="${cc.id}">${cc.name}</option>`).join('') || '<option disabled>add a concept first</option>'}
+          </select>
+          <input type="text" id="card-content" placeholder="question / prompt">
+          <select id="card-type" onchange="toggleCardType()" style="width:100%; padding:11px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface-soft); font-family:'JetBrains Mono',monospace; font-size:13px; margin-bottom:10px;">
+            <option value="exact_match">exact match</option>
+            <option value="multiple_choice">multiple choice</option>
+          </select>
+          <div id="mc-options-inputs" style="display:none;">
+            <input type="text" id="mc-opt-0" placeholder="option A">
+            <input type="text" id="mc-opt-1" placeholder="option B">
+            <input type="text" id="mc-opt-2" placeholder="option C (optional)">
+            <input type="text" id="mc-opt-3" placeholder="option D (optional)">
+          </div>
+          <input type="text" id="card-answer" placeholder="correct answer (must exactly match an option, for MC)">
+          <div class="row"><button class="primary" onclick="submitCard()">add card</button></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleManageContent(){
+  document.getElementById('manage-content-forms').classList.toggle('open');
+}
+
+async function startModuleQuiz(moduleName){
+  const panel = document.getElementById('module-quiz-panel');
+  panel.innerHTML = `<div class="panel"><div class="idle">generating 5-10 questions for "${moduleName}"…</div></div>`;
+  panel.scrollIntoView({behavior:'smooth', block:'center'});
+  try {
+    const data = await safeFetch('/api/module-quiz', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({domain_id: currentDomain, module_name: moduleName}) }, null);
+    quizState = { questions: data.questions, index: 0, score: 0, answered: false };
+    renderQuizQuestion();
+  } catch(e){
+    panel.innerHTML = `<div class="panel"><div class="error-banner">${e.message}</div></div>`;
+  }
+}
+
+function renderQuizQuestion(){
+  const panel = document.getElementById('module-quiz-panel');
+  const q = quizState.questions[quizState.index];
+  panel.innerHTML = `
+    <div class="panel">
+      <div class="eyebrow">module quiz — question ${quizState.index+1} of ${quizState.questions.length}</div>
+      <div class="card-content">${q.question}</div>
+      <div id="quiz-options">${q.options.map(opt => `<button class="mc-option" onclick="answerQuizQuestion('${opt.replace(/'/g,"\\'")}')">${opt}</button>`).join('')}</div>
+      <div class="feedback" id="quiz-feedback"></div>
+    </div>
+  `;
+}
+
+function answerQuizQuestion(chosen){
+  if (quizState.answered) return;
+  quizState.answered = true;
+  const q = quizState.questions[quizState.index];
+  const correct = chosen === q.correct_answer;
+  if (correct) quizState.score++;
+  document.querySelectorAll('#quiz-options .mc-option').forEach(btn => {
+    if (btn.textContent === q.correct_answer) btn.classList.add('chosen-correct');
+    else if (btn.textContent === chosen) btn.classList.add('chosen-incorrect');
+    btn.disabled = true;
+  });
+  const fb = document.getElementById('quiz-feedback');
+  fb.textContent = correct ? 'correct!' : `incorrect — correct answer: ${q.correct_answer}`;
+  fb.className = 'feedback ' + (correct ? 'correct' : 'incorrect');
+
+  const isLast = quizState.index === quizState.questions.length - 1;
+  document.getElementById('module-quiz-panel').insertAdjacentHTML('beforeend',
+    `<div class="row" style="margin-top:-8px; padding:0 24px 20px;">
+      <button class="primary" onclick="${isLast ? 'finishQuiz()' : 'nextQuizQuestion()'}">${isLast ? 'see results' : 'next question →'}</button>
+    </div>`);
+}
+
+function nextQuizQuestion(){
+  quizState.index++;
+  quizState.answered = false;
+  renderQuizQuestion();
+}
+
+function finishQuiz(){
+  const panel = document.getElementById('module-quiz-panel');
+  const pct = Math.round((quizState.score / quizState.questions.length) * 100);
+  panel.innerHTML = `
+    <div class="panel">
+      <div class="eyebrow">quiz complete</div>
+      <div class="card-content">You scored ${quizState.score} / ${quizState.questions.length} (${pct}%)</div>
+      <div class="feedback ${pct >= 70 ? 'correct' : 'incorrect'}">${pct >= 70 ? 'Solid grasp of this module.' : 'Worth reviewing this module again, or ask the tutor in Practice Shell about what tripped you up.'}</div>
+    </div>
+  `;
+}
+
+async function generateExplanation(conceptId){
+  const btn = document.getElementById(`explain-btn-${conceptId}`);
+  const status = document.getElementById(`explain-status-${conceptId}`);
+  btn.disabled = true;
+  status.textContent = 'generating…';
+  status.className = 'feedback';
+  try {
+    await safeFetch(`/api/generate-explanation/${conceptId}`, { method: 'POST' }, null);
+    await loadCurriculum();
+    selectConcept(conceptId);
+  } catch(e){
+    status.textContent = e.message;
+    status.className = 'feedback incorrect';
+    btn.disabled = false;
+  }
+}
+
+function drawMindGraph(concepts, focusId){
+  const svg = document.getElementById('mindgraph');
+  if (!concepts.length){
+    svg.innerHTML = `<text x="120" y="80" text-anchor="middle" font-size="11" fill="#b3ab97" font-family="JetBrains Mono">no data yet</text>`;
+    return;
+  }
+  const focus = concepts.find(c => c.id === focusId) || concepts[0];
+  const related = concepts.filter(c =>
+    c.id !== focus.id && (focus.prerequisites.includes(c.id) || c.prerequisites.includes(focus.id))
+  ).slice(0, 5);
+
+  const cx = 120, cy = 80, r = 55;
+  let html = '';
+  const positions = related.map((c, i) => {
+    const angle = (i / Math.max(related.length,1)) * 2 * Math.PI - Math.PI/2;
+    return { c, x: cx + r*Math.cos(angle), y: cy + r*Math.sin(angle) };
+  });
+  positions.forEach(p => {
+    html += `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="#dcd4bc" stroke-width="1"/>`;
+  });
+  positions.forEach(p => {
+    html += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="#c96a45" opacity="0.55"/>`;
+  });
+  html += `<circle cx="${cx}" cy="${cy}" r="8" fill="#79885c"/>`;
+  svg.innerHTML = html;
+}
+
+function toggleManual(which){
+  const target = document.getElementById('form-' + which);
+  const isOpen = target.classList.contains('open');
+  document.getElementById('form-concept').classList.remove('open');
+  document.getElementById('form-card').classList.remove('open');
+  if (!isOpen) target.classList.add('open');
+}
+
+function toggleCardType(){
+  const isMC = document.getElementById('card-type').value === 'multiple_choice';
+  document.getElementById('mc-options-inputs').style.display = isMC ? 'block' : 'none';
+}
+
+async function submitConcept(){
+  const id = document.getElementById('concept-id').value.trim().toLowerCase().replace(/\s+/g, '_');
+  const name = document.getElementById('concept-name').value.trim();
+  const module_name = document.getElementById('concept-module').value.trim();
+  if (!id || !name) return;
+  await safeFetch('/api/concepts', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id, domain_id: currentDomain, name, prerequisites: [], module_name}) }, 'curriculum-error');
+  document.getElementById('concept-id').value = '';
+  document.getElementById('concept-name').value = '';
+  document.getElementById('concept-module').value = '';
+  loadCurriculum();
+}
+
+async function submitCard(){
+  const concept_id = document.getElementById('card-concept').value;
+  const content = document.getElementById('card-content').value.trim();
+  const answer_key = document.getElementById('card-answer').value.trim();
+  const grading_type = document.getElementById('card-type').value;
+  let options = [];
+  if (grading_type === 'multiple_choice'){
+    options = ['mc-opt-0','mc-opt-1','mc-opt-2','mc-opt-3']
+      .map(id => document.getElementById(id).value.trim()).filter(Boolean);
+  }
+  if (!concept_id || !content || !answer_key) return;
+  await safeFetch('/api/cards', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({domain_id: currentDomain, content, answer_key, concept_ids: [concept_id], grading_type, options}) }, 'curriculum-error');
+  document.getElementById('card-content').value = '';
+  document.getElementById('card-answer').value = '';
+  ['mc-opt-0','mc-opt-1','mc-opt-2','mc-opt-3'].forEach(id => document.getElementById(id).value = '');
+  loadCurriculum();
+}
+
+async function generateSyllabus(){
+  const goal = document.getElementById('goal-input').value.trim();
+  const hobby = document.getElementById('hobby-input').value.trim();
+  if (!goal) return;
+  const btn = document.getElementById('gen-btn');
+  const status = document.getElementById('gen-status');
+  btn.disabled = true;
+  status.className = 'gen-status loading';
+  status.textContent = 'researching with Tavily and writing it up with Groq — can take 20-40s…';
+  try {
+    const data = await safeFetch('/api/generate-syllabus', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({goal_description: goal, hobby}) }, null);
+    status.className = 'gen-status success';
+    status.textContent = `created "${data.domain_name}" with ${data.concept_count} concepts.`;
+    document.getElementById('goal-input').value = '';
+    document.getElementById('hobby-input').value = '';
+    currentDomain = data.domain_id;
+    selectedConceptId = null;
+    await loadDomains();
+  } catch (e){
+    status.className = 'gen-status error';
+    status.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadPractice(){
+  if (!currentDomain){ document.getElementById('card-panel').innerHTML = `<div class="idle">create a domain first.</div>`; return; }
+  let action;
+  try { action = await safeFetch(`/api/next/${currentDomain}`, {}, 'practice-error'); }
+  catch(e){ return; }
+  document.getElementById('practice-error').innerHTML = '';
+  const panel = document.getElementById('card-panel');
+  const sub = document.getElementById('practice-sub');
+
+  if (action.action === 'idle'){
+    panel.className = 'panel';
+    panel.innerHTML = `<div class="idle">nothing due right now. add more cards, or ask the mentor below about anything you've selected in the roadmap.</div>`;
+    sub.textContent = 'all caught up.';
+    openChatFor(selectedConceptId);
+    return;
+  }
+  if (action.action === 'remediate'){
+    panel.className = 'panel remediate';
+    panel.innerHTML = `
+      <div class="eyebrow">struggling — flagged by trend, not a single miss</div>
+      <div class="card-content"><b>${action.concept_id}</b> — mastery ${(action.mastery*100).toFixed(0)}%</div>
+      <div class="feedback">${action.reason}. Ask the mentor below for a different explanation.</div>`;
+    sub.textContent = 'a concept needs attention.';
+    openChatFor(action.concept_id);
+    return;
+  }
+
+  currentCard = action.card;
+  panel.className = 'panel';
+  sub.textContent = 'next card is ready.';
+  if (currentCard.grading_type === 'multiple_choice' && currentCard.options){
+    panel.innerHTML = `
+      <div class="eyebrow">due now — multiple choice</div>
+      <div class="card-content">${currentCard.content}</div>
+      <div id="mc-options">${currentCard.options.map(opt => `<button class="mc-option" onclick="submitMC('${opt.replace(/'/g,"\\'")}')">${opt}</button>`).join('')}</div>
+      <div class="feedback" id="feedback"></div>`;
+  } else {
+    panel.innerHTML = `
+      <div class="eyebrow">due now</div>
+      <div class="card-content">${currentCard.content}</div>
+      <input type="text" id="answer-input" placeholder="your answer" autocomplete="off">
+      <div class="row"><button class="primary" onclick="submitAnswer()">submit</button></div>
+      <div class="feedback" id="feedback"></div>`;
+    document.getElementById('answer-input')?.addEventListener('keydown', e => { if (e.key==='Enter') submitAnswer(); });
+    document.getElementById('answer-input')?.focus();
+  }
+  openChatFor(selectedConceptId);
+}
+
+async function submitMC(chosen){
+  const correct = chosen === currentCard.answer_key;
+  document.querySelectorAll('.mc-option').forEach(btn => {
+    if (btn.textContent === currentCard.answer_key) btn.classList.add('chosen-correct');
+    else if (btn.textContent === chosen && !correct) btn.classList.add('chosen-incorrect');
+    btn.disabled = true;
+  });
+  const fb = document.getElementById('feedback');
+  fb.textContent = correct ? 'correct.' : `incorrect. correct answer: ${currentCard.answer_key}`;
+  fb.className = 'feedback ' + (correct ? 'correct' : 'incorrect');
+  await grade(correct, correct ? 'good' : 'again');
+  setTimeout(loadPractice, 1400);
+}
+
+async function submitAnswer(){
+  const val = document.getElementById('answer-input').value.trim().toLowerCase();
+  const correct = val === (currentCard.answer_key || '').trim().toLowerCase();
+  const fb = document.getElementById('feedback');
+  if (correct){
+    fb.textContent = 'correct! how did that feel?';
+    fb.className = 'feedback correct';
+    document.getElementById('card-panel').insertAdjacentHTML('beforeend',
+      `<div class="row" style="margin-top:8px">
+        <button onclick="finishGrade('hard')">hard</button>
+        <button onclick="finishGrade('good')">good</button>
+        <button onclick="finishGrade('easy')">easy</button>
+      </div>`);
+  } else {
+    fb.textContent = `incorrect. answer: ${currentCard.answer_key}`;
+    fb.className = 'feedback incorrect';
+    await grade(false, 'good');
+    setTimeout(loadPractice, 1300);
+  }
+}
+async function finishGrade(felt){
+  await grade(true, felt);
+  setTimeout(loadPractice, 400);
+}
+async function grade(correct, felt){
+  await safeFetch('/api/grade', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({card_id: currentCard.id, correct, felt}) }, 'practice-error');
+}
+
+function openChatFor(conceptId){
+  const panel = document.getElementById('chat-panel');
+  let concept = curriculumCache.find(c => c.id === conceptId);
+  if (!concept && selectedConceptId) concept = curriculumCache.find(c => c.id === selectedConceptId);
+  if (!concept && curriculumCache.length) concept = curriculumCache[0];
+  if (!concept){ panel.style.display = 'none'; return; }
+
+  if (chatConceptId !== concept.id){
+    chatConceptId = concept.id;
+    chatConceptName = concept.name;
+    chatHistory = [];
+    document.getElementById('chat-log').innerHTML = '';
+  }
+  document.getElementById('chat-concept-name').textContent = concept.name;
+  panel.style.display = 'block';
+}
+
+async function sendChat(){
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg || !chatConceptId) return;
+  input.value = '';
+  appendChatMsg('user', msg);
+  document.getElementById('chat-error').textContent = '';
+  try {
+    const data = await safeFetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({concept_id: chatConceptId, message: msg, history: chatHistory}) }, null);
+    chatHistory.push({role:'user', text: msg});
+    chatHistory.push({role:'assistant', text: data.reply});
+    appendChatMsg('model', data.reply);
+  } catch(e){
+    document.getElementById('chat-error').textContent = e.message;
+    document.getElementById('chat-error').className = 'feedback incorrect';
+  }
+}
+document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+function appendChatMsg(role, text){
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function loadLedger(){
+  if (!currentDomain){ document.getElementById('ledger-grid').innerHTML = `<div class="idle">create a domain first.</div>`; return; }
+  let rows;
+  try { rows = await safeFetch(`/api/ledger/${currentDomain}`, {}, 'review-error'); }
+  catch(e){ return; }
+  document.getElementById('review-error').innerHTML = '';
+  const grid = document.getElementById('ledger-grid');
+  if (!rows.length){ grid.innerHTML = `<div class="idle">no concepts yet.</div>`; return; }
+  const now = new Date();
+  grid.innerHTML = rows.map(r => {
+    const due = r.next_due ? new Date(r.next_due) : null;
+    const isDue = due && due <= now;
+    const dueLabel = due ? due.toLocaleDateString() : '—';
+    return `
+      <div class="ledger-card">
+        <div class="ledger-top">
+          <div><div class="ledger-module">${r.module_name || 'unsorted'}</div><div class="ledger-name">${r.name}</div></div>
+          ${isDue ? '<span class="due-pill">review due</span>' : ''}
+        </div>
+        <div class="ledger-stats">
+          <div class="ledger-stat"><b>${r.review_count}</b><span>reviews</span></div>
+          <div class="ledger-stat"><b>${r.stability}</b><span>stability</span></div>
+          <div class="ledger-stat"><b>${r.difficulty}</b><span>difficulty</span></div>
+        </div>
+        <div class="ledger-bottom">
+          <span>next: ${dueLabel}</span>
+          <button onclick="studyConcept('${r.id}')">study concept →</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function studyConcept(conceptId){
+  selectedConceptId = conceptId;
+  document.querySelectorAll('.toptab').forEach(n => n.classList.remove('active'));
+  document.querySelector('[data-view="practice"]').classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-practice').classList.add('active');
+  loadPractice().then(() => openChatFor(conceptId));
+}
+
+function switchAuthTab(which){
+  document.getElementById('tab-login').classList.toggle('active', which === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', which === 'signup');
+  document.getElementById('auth-form-login').style.display = which === 'login' ? 'block' : 'none';
+  document.getElementById('auth-form-signup').style.display = which === 'signup' ? 'block' : 'none';
+  document.getElementById('auth-error').textContent = '';
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const err = document.getElementById('auth-error');
+  try {
+    const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password}) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'login failed');
+    err.textContent = '';
+    enterApp();
+  } catch(e){
+    err.textContent = e.message;
+    err.className = 'feedback incorrect';
+  }
+}
+
+async function doSignup(){
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const err = document.getElementById('auth-error');
+  try {
+    const res = await fetch('/api/auth/signup', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password}) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'signup failed');
+    err.textContent = '';
+    enterApp();
+  } catch(e){
+    err.textContent = e.message;
+    err.className = 'feedback incorrect';
+  }
+}
+
+async function doLogout(){
+  await fetch('/api/auth/logout', { method: 'POST' });
+  document.body.classList.remove('authed');
+  currentDomain = null;
+  viewMode = 'home';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function enterApp(){
+  document.body.classList.add('authed');
+  loadDomains();
+}
+
+async function checkAuth(retriesLeft){
+  if (retriesLeft === undefined) retriesLeft = 2;
+  try {
+    const res = await fetch('/api/auth/me');
+    const err = document.getElementById('auth-error');
+    if (err) { err.textContent = ''; err.className = 'feedback'; }  // got a real response -- clear any "waking up" message
+    if (res.ok){ enterApp(); return; }
+    // a real 401 means genuinely not logged in -- that's expected, not an error, don't retry
+  } catch(networkError){
+    // fetch() throwing (not a 401 response) means the server didn't respond at
+    // all -- on free hosting tiers, that's almost always a cold start waking up
+    if (retriesLeft > 0){
+      const err = document.getElementById('auth-error');
+      if (err){
+        err.textContent = 'waking up the server — this can take up to a minute on free hosting. Retrying…';
+        err.className = 'feedback';
+      }
+      await new Promise(r => setTimeout(r, 6000));
+      return checkAuth(retriesLeft - 1);
+    }
+    const err = document.getElementById('auth-error');
+    if (err){
+      err.textContent = "couldn't reach the server after retrying. Try refreshing the page in a moment.";
+      err.className = 'feedback incorrect';
+    }
+  }
+}
+
+checkAuth();
+</script>
+</body>
+</html>
