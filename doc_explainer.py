@@ -65,6 +65,7 @@ def explain_document(file_path: str, file_type: str, hobby: str | None) -> str:
             "Couldn't extract any text from this file -- it may be a scanned/image-only "
             "PDF. Try uploading it as an image instead if it's a single page."
         )
+<<<<<<< HEAD
     # 40,000 chars was leftover from when this used Gemini (much larger free-tier
     # budget) and was never recalibrated for Groq's 12,000 TPM cap -- 40,000 chars
     # (~10,000 tokens) plus the default 2,000 output tokens totalled ~12,000+,
@@ -77,4 +78,11 @@ def explain_document(file_path: str, file_type: str, hobby: str | None) -> str:
         text = text[:MAX_CHARS] + "\n\n[... truncated, document is longer than this excerpt ...]"
 
     return llm_common.generate_text(f"{instruction}\n\n--- document content ---\n{text}", max_tokens=900)
+=======
+    MAX_CHARS = 40000
+    if len(text) > MAX_CHARS:
+        text = text[:MAX_CHARS] + "\n\n[... truncated, document is longer than this excerpt ...]"
+
+    return llm_common.generate_text(f"{instruction}\n\n--- document content ---\n{text}")
+>>>>>>> 4155d975e7f5c4eddb6af7d9eaf82afb98f1b115
 
